@@ -1,412 +1,503 @@
-import React, { useState } from 'react';
-
-// アイコン用のライブラリ (Phosphor Icons)
-// 例: <i class="ph ph-heart"></i>
-// Font Awesomeも利用可能
-// <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-// Phosphor Icons
-// <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/dist/phosphor.js"></script>
-
-function App() {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [experience, setExperience] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [quizStarted, setQuizStarted] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  // 復習モードの機能が不要になったため、incorrectAttemptsの状態は削除
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [badges, setBadges] = useState([]);
-  const [earnedTitle, setEarnedTitle] = useState('');
-  // 復習モードの機能が不要になったため、showReviewModeとreviewQuestionIndexの状態は削除
-
-  // クイズデータ
-  const quizData = [
-    {
-      chapter: '第1章：生命の泉の探求',
-      scenario: '冒険者よ、まずは「生命の泉」と呼ばれる血液の基本に触れてみよう。この泉のpHは、生命活動の均衡を示す重要な指標だ。',
-      character: '賢者アルバス',
-      question: '血液のpHの正常値範囲はどれですか？',
-      options: ['7.20 - 7.30', '7.35 - 7.45', '7.50 - 7.60', '6.90 - 7.00'],
-      answer: '7.35 - 7.45',
-      explanation: '血液のpHは生命維持に非常に重要な指標です。正常範囲は7.35-7.45であり、この狭い範囲から逸脱すると、体の機能に大きな影響が出ます。pHが7.35より低いと酸血症（アシデミア）、7.45より高いとアルカリ血症（アルカレミア）と診断されます。',
-      learningPoints: 'pHは水素イオン濃度を対数で表したもので、数値が低いほど酸性が強く、高いほどアルカリ性が強いです。血液中の様々な緩衝系がこのpHを一定に保つように機能しています。'
-    },
-    {
-      chapter: '第2章：呼吸の風と二酸化炭素の秘密',
-      scenario: '次に訪れるのは「呼吸の風」が吹き荒れる場所。ここでは、二酸化炭素（CO₂）が血液の酸性度にどう影響するかを学ぶ。',
-      character: '風の精霊シルフィー',
-      question: 'PaCO₂が上昇すると、血液の酸性度はどのように変化しますか？',
-      options: ['アルカリ性に傾く', '酸性に傾く', '変化しない', '一時的にアルカリ性になり、その後酸性に傾く'],
-      answer: '酸性に傾く',
-      explanation: 'PaCO₂（動脈血二酸化炭素分圧）は、体内の二酸化炭素量を示します。二酸化炭素は水に溶けて炭酸(H₂CO₃)となり、さらに水素イオン(H⁺)を放出するため、揮発性の酸として働きます。したがって、PaCO₂が上昇すると血液は酸性に傾き、pHは低下します。',
-      learningPoints: 'この反応はCO₂ + H₂O ↔ H₂CO₃ ↔ H⁺ + HCO₃⁻と表されます。肺はこの反応を通じて、CO₂の排泄により酸を調節しています。'
-    },
-    {
-      chapter: '第3章：腎臓の湖と重炭酸イオンの力',
-      scenario: '「腎臓の湖」は、体内の塩基のバランスを司る神秘の場所。ここでは、重炭酸イオン（HCO₃⁻）の役割が鍵となる。',
-      character: '水の巫女リアナ',
-      question: 'HCO₃⁻の正常値範囲はどれですか？',
-      options: ['18 - 20 mEq/L', '20 - 22 mEq/L', '24 - 26 mEq/L', '28 - 30 mEq/L'],
-      answer: '24 - 26 mEq/L',
-      explanation: '重炭酸イオン（HCO₃⁻）は血液中の主要な塩基（アルカリ）として機能し、主に腎臓によって調節されています。正常値は約24 ± 2 mEq/L（22-26 mEq/L）です。HCO₃⁻が増加すると血液はアルカリ性に傾き、減少すると酸性に傾きます。',
-      learningPoints: '腎臓はH⁺の排泄とHCO₃⁻の再吸収を介して、非揮発性酸や塩基のバランスを調節しています。これは代謝性の酸塩基平衡において非常に重要な役割を果たします。'
-    },
-    {
-      chapter: '第4章：病魔の影とアシドーシス',
-      scenario: 'この章では、体内の均衡が崩れ、「病魔の影」が忍び寄る状態、アシドーシスに立ち向かう。',
-      character: '戦士グスタフ',
-      question: '呼吸性アシドーシスの主な原因は何ですか？',
-      options: ['過換気', '低換気', '胃液の喪失', '腎臓からのHCO₃⁻喪失'],
-      answer: '低換気',
-      explanation: '呼吸性アシドーシスは、肺胞低換気によってCO₂が体内に蓄積することが原因で起こります。これによりPaCO₂が上昇し、血液が酸性に傾きます。慢性閉塞性肺疾患（COPD）の増悪や鎮静薬の過量投与などが代表的な原因です。',
-      learningPoints: 'CO₂の蓄積は、血液中の炭酸の増加を意味し、結果としてH⁺濃度が上昇します。身体はこれを代償しようとしますが、急性の場合は代償が間に合いません。'
-    },
-    {
-      chapter: '第5章：回復の光とアルカローシス',
-      scenario: '「回復の光」が差し込むこの場所では、過度な代謝活動が引き起こすアルカローシスに焦点を当てる。',
-      character: '癒しの僧侶セリア',
-      question: '代謝性アルカローシスの代表的な原因として考えられるのはどれですか？',
-      options: ['糖尿病性ケトアシドーシス', '重度の下痢', '持続的な嘔吐', '腎不全'],
-      answer: '持続的な嘔吐',
-      explanation: '代謝性アルカローシスは、H⁺イオンの過剰な喪失やHCO₃⁻の過剰によって引き起こされます。持続的な嘔吐や胃液吸引による胃酸（HCl）の喪失は、体内のH⁺を減らし、相対的にHCO₃⁻を増加させるため、代謝性アルカローシスの主な原因となります。',
-      learningPoints: '胃酸喪失だけでなく、ループ利尿薬の使用や原発性アルドステロン症などもH⁺の喪失を促進し、代謝性アルカローシスを引き起こす可能性があります。'
-    },
-    {
-      chapter: '第6章：隠された手掛かり：アニオンギャップの謎',
-      scenario: '「隠された手掛かり」の章では、代謝性アシドーシスの原因を特定するための重要な指標、アニオンギャップの謎に迫る。',
-      character: '探偵シャーロック',
-      question: 'アニオンギャップ（AG）の計算式として正しいのはどれですか？',
-      options: ['AG = [Na⁺] + [K⁺] - [Cl⁻]', 'AG = [Na⁺] - ([Cl⁻] + [HCO₃⁻])', 'AG = [HCO₃⁻] - [Cl⁻]', 'AG = [K⁺] + [HCO₃⁻] - [Na⁺]'],
-      answer: 'AG = [Na⁺] - ([Cl⁻] + [HCO₃⁻])',
-      explanation: 'アニオンギャップは、血中の測定される主要な陽イオン（Na⁺）と陰イオン（Cl⁻、HCO₃⁻）の差から求められます。体液は電気的中性を保つため、測定されない陰イオン（アルブミン、リン酸、乳酸など）の存在を示す指標となります。正常値は約12 ± 2 mEq/Lです。',
-      learningPoints: 'AGの開大（正常値より高い場合）は、乳酸アシドーシスや糖尿病性ケトアシドーシスなど、異常な酸が体内に蓄積していることを示唆します。正常AG性の代謝性アシドーシスは、下痢や腎尿細管性アシドーシスなどで見られます。'
-    },
-    {
-      chapter: '第7章：知恵の補正：アルブミンの影響',
-      scenario: '「知恵の補正」では、見かけの数値に惑わされず、真の姿を見抜くための補正アニオンギャップの重要性を学ぶ。',
-      character: '錬金術師エメラルド',
-      question: '低アルブミン血症の場合、アニオンギャップ（AG）をどのように補正しますか？',
-      options: ['補正AG = 実測AG - 2.5 × (4.0 - Alb実測)', '補正AG = 実測AG + 2.5 × (4.0 - Alb実測)', '補正AG = 実測AG / Alb実測', '補正AG = 実測AG × Alb実測'],
-      answer: '補正AG = 実測AG + 2.5 × (4.0 - Alb実測)',
-      explanation: 'アルブミンは血中の主要な陰イオンであり、低アルブミン血症では見かけ上AGが低下（ギャップが小さく見える）し、実際よりアシドーシスを軽く評価してしまう可能性があります。そのため、基準値である4.0 g/dLからのアルブミン減少分に2.5を乗じて実測AGに加算することで、真のAGを評価します。',
-      learningPoints: '補正AGを用いることで、低アルブミン血症下の患者でも正確なアニオンギャップの評価が可能となり、隠れた代謝性アシドーシスの発見に繋がります。'
-    },
-    {
-      chapter: '第8章：混合の迷宮：二次性の異常',
-      scenario: '「混合の迷宮」では、複数の酸塩基異常が同時に存在する複雑な状況に挑む。ΔAGと補正HCO₃⁻がその道標となる。',
-      character: '道化師トリックスター',
-      question: 'アニオンギャップ開大性アシドーシスに加えて、正常アニオンギャップ性代謝性アシドーシスを合併していることを示唆する補正HCO₃⁻の値の傾向はどれですか？',
-      options: ['補正HCO₃⁻が26-28 mEq/Lより高い', '補正HCO₃⁻が22-24 mEq/Lより低い', '補正HCO₃⁻が正常範囲内である', '補正HCO₃⁻と実測HCO₃⁻に差がない'],
-      answer: '補正HCO₃⁻が22-24 mEq/Lより低い',
-      explanation: 'ΔAGは血中に蓄積した非揮発酸の量に相当し、理論上、この酸によってHCO₃⁻は同じだけ消費されるはずです。補正HCO₃⁻ = 実測HCO₃⁻ + ΔAGを計算し、その値が正常範囲（22-24 mEq/L程度）より低い場合、AG開大性アシドーシスに加えて、さらにHCO₃⁻が失われる正常AG性の代謝性アシドーシスが合併していると判断されます（例：DKA患者が下痢もしている場合）。',
-      learningPoints: '補正HCO₃⁻が正常範囲より高い場合は、AG開大性アシドーシスに代謝性アルカローシスが合併している可能性を示唆します。この指標は、隠れた混合性酸塩基異常を見つけるために非常に重要です。'
-    },
-    {
-      chapter: '第9章：身体の囁き：代償反応の法則',
-      scenario: '「身体の囁き」の章では、体が自らバランスを取り戻そうとする賢い仕組み、代償反応の法則を学ぶ。',
-      character: '医術師ガレノス',
-      question: '代謝性アシドーシスに対する呼吸性代償として、PaCO₂の予測値を求めるWinterの公式はどれですか？',
-      options: ['予測PaCO₂ ≈ 0.7 × [HCO₃⁻] + 20', '予測PaCO₂ ≈ 1.5 × [HCO₃⁻] + 8 ± 2', '予測PaCO₂ ≈ 10 × [HCO₃⁻] / 24', '予測PaCO₂ ≈ [HCO₃⁻] + 40'],
-      answer: '予測PaCO₂ ≈ 1.5 × [HCO₃⁻] + 8 ± 2',
-      explanation: '代謝性アシドーシスでは、低下したHCO₃⁻を補うために呼吸中枢が刺激され、過換気によってPaCO₂を低下させます。Winterの公式は、この代償の程度を予測するもので、1 mEq/LのHCO₃⁻低下に対し、PaCO₂は約1.2 mmHg低下するという経験則に基づいています。この予測範囲から逸脱した場合、混合性の酸塩基異常を疑います。',
-      learningPoints: '代償反応はあくまで部分的なもので、原則としてpHを完全に正常化することはありません。代償の限界を知ることで、隠れた病態を見抜くことができます。'
-    },
-    {
-      chapter: '最終章：真理の探求者：混合性障害の診断',
-      scenario: 'ついに「真理の探求者」の最終章。これまでの知識を総動員し、最も複雑な混合性酸塩基障害の診断に挑戦する。',
-      character: '大賢者アリストテレス',
-      question: '「pH7.20, PaCO₂ 80 mmHg, HCO₃⁻ 30 mEq/L」という血液ガスデータがあった場合、考えられる酸塩基異常の組み合わせとして最も適切なものはどれですか？ (正常HCO₃⁻ 24 mEq/L, 正常PaCO₂ 40 mmHgとして計算)',
-      options: [
-        '単純性慢性呼吸性アシドーシス',
-        '単純性代謝性アルカローシス',
-        '慢性呼吸性アシドーシスと代謝性アシドーシスの合併',
-        '急性呼吸性アシドーシスと代謝性アルカローシスの合併'
-      ],
-      answer: '慢性呼吸性アシドーシスと代謝性アシドーシスの合併',
-      explanation: 'この症例では、pHは酸性側（7.20）でありアシデミアです。PaCO₂が80 mmHgと高値であり、呼吸性アシドーシスが存在します。HCO₃⁻は30 mEq/Lと正常より高値ですが、慢性呼吸性アシドーシスの代償としてのHCO₃⁻の上昇は、PaCO₂が10 mmHg上昇するごとにHCO₃⁻が約3-4 mEq/L上昇します。PaCO₂が正常値40 mmHgから40 mmHg上昇しているので、期待されるHCO₃⁻は約24 + (4 × 4) = 40 mEq/L程度です。しかし、実測値は30 mEq/Lと期待値より低いため、慢性呼吸性アシドーシスに加えて代謝性アシドーシスも併発していると考えられます。',
-      learningPoints: '複数の酸塩基異常が合併している場合、pHが一見正常に見えることもあります。各指標と代償反応の法則を照らし合わせることで、隠れた異常を見つけ出すことが臨床では極めて重要ですげす。'
-    }
-  ];
-
-  const totalQuestions = quizData.length;
-
-  // コンポーネントがマウントされたときに質問をシャッフル
-  const [randomizedQuestions, setRandomizedQuestions] = useState(() => {
-    const shuffled = [...quizData].sort(() => Math.random() - 0.5);
-    return shuffled.map(q => ({
-      ...q,
-      options: [...q.options].sort(() => Math.random() - 0.5)
-    }));
-  });
-
-  // バッジと称号の条件
-  const getBadge = (currentScore, currentExperience) => {
-    const newBadges = [];
-    if (currentScore >= totalQuestions / 2 && !badges.includes('初級知識探究者')) {
-      newBadges.push('初級知識探究者');
-    }
-    if (currentScore >= totalQuestions * 0.7 && !badges.includes('中級平衡術師')) {
-      newBadges.push('中級平衡術師');
-    }
-    if (currentScore === totalQuestions && !badges.includes('酸塩基マスター')) {
-      newBadges.push('酸塩基マスター');
-    }
-    return newBadges;
-  };
-
-  const getTitle = (currentScore) => {
-    if (currentScore === totalQuestions) {
-      return '真理の探求者';
-    } else if (currentScore >= totalQuestions * 0.7) {
-      return '知識の冒険者';
-    } else {
-      return '見習い冒険者';
-    }
-  };
-
-  const handleAnswerClick = (option) => {
-    if (!randomizedQuestions[currentQuestionIndex]) {
-      console.error("現在のインデックスに質問が見つかりません:", currentQuestionIndex);
-      return;
-    }
-
-    setSelectedAnswer(option);
-    setShowResult(true);
-
-    const isCorrect = option === randomizedQuestions[currentQuestionIndex].answer;
-
-    if (isCorrect) {
-      setScore(prevScore => prevScore + 1);
-      setExperience(prevExp => prevExp + 10);
-      setFeedbackMessage('正解！素晴らしい！');
-    } else {
-      setFeedbackMessage('残念！もう一度考えてみよう。');
-      // 復習モードを削除したため、incorrectAttemptsへの追加ロジックも削除
-    }
-
-    setTimeout(() => {
-      if (isCorrect) {
-        console.log('キャラクターが喜んでいます！');
-      } else {
-        console.log('キャラクターが少しがっかりしています...');
-      }
-    }, 500);
-  };
-
-  const handleNextQuestion = () => {
-    setShowResult(false);
-    setSelectedAnswer(null);
-    setFeedbackMessage('');
-
-    if (currentQuestionIndex < totalQuestions - 1) {
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
-    } else {
-      setQuizCompleted(true);
-      const newBadges = getBadge(score, experience);
-      if (newBadges.length > 0) {
-        setBadges(prevBadges => [...prevBadges, ...newBadges]);
-      }
-      setEarnedTitle(getTitle(score));
-    }
-  };
-
-  // クイズの状態をリセットする関数
-  const resetQuizState = () => {
-    setCurrentQuestionIndex(0);
-    setScore(0);
-    setExperience(0);
-    setShowResult(false);
-    setSelectedAnswer(null);
-    setQuizCompleted(false);
-    // 復習モード削除に伴い、incorrectAttemptsのクリアも不要
-    setFeedbackMessage('');
-    setBadges([]);
-    setEarnedTitle('');
-    // 復習モード関連の状態リセットも不要
-
-    const shuffledQuestions = [...quizData].sort(() => Math.random() - 0.5);
-    setRandomizedQuestions(shuffledQuestions.map(q => ({
-      ...q,
-      options: [...q.options].sort(() => Math.random() - 0.5)
-    })));
-  };
-
-  const startQuiz = () => {
-    setQuizStarted(true);
-    resetQuizState();
-  };
-
-  // 復習モード関連の関数は削除
-
-  const currentQuestion = randomizedQuestions[currentQuestionIndex];
-
-  // --- Render Logic ---
-
-  if (!quizStarted) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 font-inter text-gray-800">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-indigo-400">
-          <h1 className="text-4xl font-extrabold text-indigo-700 mb-6">
-            血液ガス分析アドベンチャー
-          </h1>
-          <p className="text-lg mb-8 leading-relaxed">
-            知識の冒険者よ！血液ガス分析と酸塩基平衡の奥深い世界へようこそ。<br />
-            あなたの知識を試し、学びを深める旅が今、始まる！
-          </p>
-          <button
-            onClick={startQuiz}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300"
-          >
-            冒険を開始する
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentQuestion && !quizCompleted && randomizedQuestions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 font-inter text-gray-800">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-indigo-400">
-          <p className="text-lg text-gray-800">
-            クイズデータの読み込み中、または問題が設定されていません...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-
-  if (quizCompleted) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 font-inter text-gray-800">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-green-500">
-          <h2 className="text-4xl font-extrabold text-green-700 mb-6">
-            冒険完了！
-            <i className="ph ph-star text-yellow-500 ml-2"></i>
-          </h2>
-          <p className="text-xl mb-4">
-            あなたのスコア: <span className="font-bold text-green-600">{score}</span> / {totalQuestions} 問
-          </p>
-          <p className="text-xl mb-4">
-            獲得経験値: <span className="font-bold text-yellow-600">{experience}</span> EXP
-          </p>
-          {badges.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-2xl font-bold text-purple-700 mb-2">獲得バッジ:</h3>
-              <ul className="list-disc list-inside text-lg text-gray-700">
-                {badges.map((badge, index) => (
-                  <li key={index} className="flex items-center justify-center">
-                    <i className="ph ph-medal text-amber-500 mr-2"></i>{badge}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {earnedTitle && (
-            <p className="text-2xl font-bold text-blue-700 mt-6">
-              あなたの称号: 「{earnedTitle}」
-            </p>
-          )}
-
-          {/* 復習モードを削除したため、弱点フィードバックのセクションも削除 */}
-
-          <button
-            onClick={resetQuizState}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300 mt-8"
-          >
-            もう一度挑戦する
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // メインのクイズ画面のレンダリング
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 font-inter text-gray-800">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-3xl w-full border-b-4 border-indigo-400">
-        {/* 進捗バー */}
-        <div className="w-full bg-gray-200 rounded-full h-4 mb-6 shadow-inner">
-          <div
-            className="bg-indigo-500 h-4 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${((currentQuestionIndex + (showResult ? 1 : 0)) / totalQuestions) * 100}%` }}
-          ></div>
-        </div>
-
-        {/* スコアと経験値表示 */}
-        <div className="flex justify-between text-lg font-semibold mb-6">
-          <p className="text-indigo-700">スコア: {score}</p>
-          <p className="text-yellow-700">経験値: {experience} EXP</p>
-          <p className="text-gray-600">問題: {currentQuestionIndex + 1} / {totalQuestions}</p>
-        </div>
-
-        {/* ストーリーとキャラクター */}
-        <p className="text-xl font-semibold mb-4 text-gray-700">
-          {currentQuestion.chapter}
-        </p>
-        <div className="bg-indigo-50 p-6 rounded-xl mb-6 shadow-inner border border-indigo-200">
-          <p className="text-lg mb-2 text-gray-800">
-            <span className="font-bold text-indigo-600">{currentQuestion.character}:</span> {currentQuestion.scenario}
-          </p>
-          <p className="text-xl font-bold text-gray-900">{currentQuestion.question}</p>
-        </div>
-
-        {/* 選択肢 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {currentQuestion.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handleAnswerClick(option)}
-              disabled={showResult}
-              className={`p-4 rounded-xl border-2 text-lg font-medium transition duration-200 ease-in-out shadow-sm
-                ${showResult
-                  ? (option === currentQuestion.answer
-                    ? 'bg-green-100 border-green-500 text-green-800 cursor-not-allowed'
-                    : (option === selectedAnswer ? 'bg-red-100 border-red-500 text-red-800 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed'))
-                  : 'bg-white hover:bg-indigo-50 border-indigo-300 text-indigo-700 hover:border-indigo-500'
-                }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        {/* 結果と解説 */}
-        {showResult && (
-          <div className={`p-6 rounded-xl ${selectedAnswer === currentQuestion.answer ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'} shadow-md border`}>
-            <p className={`text-xl font-bold mb-3 ${selectedAnswer === currentQuestion.answer ? 'text-green-700' : 'text-red-700'}`}>
-              {feedbackMessage}
-              {selectedAnswer === currentQuestion.answer ? <i className="ph ph-check-circle ml-2 text-green-600"></i> : <i className="ph ph-x-circle ml-2 text-red-600"></i>}
-            </p>
-            {selectedAnswer !== currentQuestion.answer && (
-              <p className="text-lg mb-2 text-gray-800">
-                正解は: <span className="font-bold text-green-600">{currentQuestion.answer}</span>
-              </p>
-            )}
-            <h3 className="text-xl font-bold text-blue-700 mb-2">解説:</h3>
-            <p className="text-lg leading-relaxed text-gray-800 mb-4">{currentQuestion.explanation}</p>
-            <h3 className="text-xl font-bold text-blue-700 mb-2">補足学習ポイント:</h3>
-            <p className="text-lg leading-relaxed text-gray-800">{currentQuestion.learningPoints}</p>
-          </div>
-        )}
-
-        {/* 次へボタン */}
-        {showResult && (
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={handleNextQuestion}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300"
-            >
-              {currentQuestionIndex < totalQuestions - 1 ? '次の質問へ' : '結果を見る'} <i className="ph ph-arrow-right ml-2"></i>
-            </button>
-          </div>
-        )}
-      </div>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>血液ガス分析アドベンチャー</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/dist/phosphor.js"></script>
+    <style>
+        /* Custom styles for the Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 p-4 text-gray-800">
+    <div id="app" class="flex flex-col items-center justify-center min-h-screen w-full">
+        <!-- Content will be rendered here by JavaScript -->
     </div>
-  );
-}
 
-export default App;
+    <script>
+        // State variables (global for simplicity in a pure JS app)
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let experience = 0;
+        let showResult = false; // Controls showing feedback and explanation after an answer
+        let selectedAnswer = null;
+        let quizStarted = false; // True when intro screen is passed
+        let quizCompleted = false; // True when main quiz is done
+        let feedbackMessage = '';
+        let badges = [];
+        let earnedTitle = '';
+        let randomizedQuestions = [];
+
+        // Review mode specific states
+        let incorrectlyAnsweredQuestions = []; // Stores questions answered incorrectly
+        let isReviewMode = false;
+        let currentReviewQuestionIndex = 0;
+
+        // Define difficulty order for sorting
+        const difficultyOrder = {'easy': 1, 'medium': 2, 'hard': 3};
+
+        // Quiz data with difficulty levels
+        const quizData = [
+            {
+                chapter: '第1章：生命の泉の探求',
+                scenario: '冒険者よ、まずは「生命の泉」と呼ばれる血液の基本に触れてみよう。この泉のpHは、生命活動の均衡を示す重要な指標だ。',
+                character: '賢者アルバス',
+                question: '血液のpHの正常値範囲はどれですか？',
+                options: ['7.20 - 7.30', '7.35 - 7.45', '7.50 - 7.60', '6.90 - 7.00'],
+                answer: '7.35 - 7.45',
+                explanation: '血液のpHは生命維持に非常に重要な指標です。正常範囲は7.35-7.45であり、この狭い範囲から逸脱すると、体の機能に大きな影響が出ます。pHが7.35より低いと酸血症（アシデミア）、7.45より高いとアルカリ血症（アルカレミア）と診断されます。',
+                learningPoints: 'pHは水素イオン濃度を対数で表したもので、数値が低いほど酸性が強く、高いほどアルカリ性が強いです。血液中の様々な緩衝系がこのpHを一定に保つように機能しています。',
+                difficulty: 'easy'
+            },
+            {
+                chapter: '第2章：呼吸の風と二酸化炭素の秘密',
+                scenario: '次に訪れるのは「呼吸の風」が吹き荒れる場所。ここでは、二酸化炭素（CO₂）が血液の酸性度にどう影響するかを学ぶ。',
+                character: '風の精霊シルフィー',
+                question: 'PaCO₂が上昇すると、血液の酸性度はどのように変化しますか？',
+                options: ['アルカリ性に傾く', '酸性に傾く', '変化しない', '一時的にアルカリ性になり、その後酸性に傾く'],
+                answer: '酸性に傾く',
+                explanation: 'PaCO₂（動脈血二酸化炭素分圧）は、体内の二酸化炭素量を示します。二酸化炭素は水に溶けて炭酸(H₂CO₃)となり、さらに水素イオン(H⁺)を放出するため、揮発性の酸として働きます。したがって、PaCO₂が上昇すると血液は酸性に傾き、pHは低下します。',
+                learningPoints: 'この反応はCO₂ + H₂O ↔ H₂CO₃ ↔ H⁺ + HCO₃⁻と表されます。肺はこの反応を通じて、CO₂の排泄により酸を調節しています。',
+                difficulty: 'easy'
+            },
+            {
+                chapter: '第3章：腎臓の湖と重炭酸イオンの力',
+                scenario: '「腎臓の湖」は、体内の塩基のバランスを司る神秘の場所。ここでは、重炭酸イオン（HCO₃⁻）の役割が鍵となる。',
+                character: '水の巫女リアナ',
+                question: 'HCO₃⁻の正常値範囲はどれですか？',
+                options: ['18 - 20 mEq/L', '20 - 22 mEq/L', '24 - 26 mEq/L', '28 - 30 mEq/L'],
+                answer: '24 - 26 mEq/L',
+                explanation: '重炭酸イオン（HCO₃⁻）は血液中の主要な塩基（アルカリ）として機能し、主に腎臓によって調節されています。正常値は約24 ± 2 mEq/L（22-26 mEq/L）です。HCO₃⁻が増加すると血液はアルカリ性に傾き、減少すると酸性に傾きます。',
+                learningPoints: '腎臓はH⁺の排泄とHCO₃⁻の再吸収を介して、非揮発性酸や塩基のバランスを調節しています。これは代謝性の酸塩基平衡において非常に重要な役割を果たします。',
+                difficulty: 'easy'
+            },
+            {
+                chapter: '第4章：病魔の影とアシドーシス',
+                scenario: 'この章では、体内の均衡が崩れ、「病魔の影」が忍び寄る状態、アシドーシスに立ち向かう。',
+                character: '戦士グスタフ',
+                question: '呼吸性アシドーシスの主な原因は何ですか？',
+                options: ['過換気', '低換気', '胃液の喪失', '腎臓からのHCO₃⁻喪失'],
+                answer: '低換気',
+                explanation: '呼吸性アシドーシスは、肺胞低換気によってCO₂が体内に蓄積することが原因で起こります。これによりPaCO₂が上昇し、血液が酸性に傾きます。慢性閉塞性肺疾患（COPD）の増悪や鎮静薬の過量投与などが代表的な原因です。',
+                learningPoints: 'CO₂の蓄積は、血液中の炭酸の増加を意味し、結果としてH⁺濃度が上昇します。身体はこれを代償しようとしますが、急性の場合は代償が間に合いません。',
+                difficulty: 'medium'
+            },
+            {
+                chapter: '第5章：回復の光とアルカローシス',
+                scenario: '「回復の光」が差し込むこの場所では、過度な代謝活動が引き起こすアルカローシスに焦点を当てる。',
+                character: '癒しの僧侶セリア',
+                question: '代謝性アルカローシスの代表的な原因として考えられるのはどれですか？',
+                options: ['糖尿病性ケトアシドーシス', '重度の下痢', '持続的な嘔吐', '腎不全'],
+                answer: '持続的な嘔吐',
+                explanation: '代謝性アルカローシスは、H⁺イオンの過剰な喪失やHCO₃⁻の過剰によって引き起こされます。持続的な嘔吐や胃液吸引による胃酸（HCl）の喪失は、体内のH⁺を減らし、相対的にHCO₃⁻を増加させるため、代謝性アルカローシスの主な原因となります。',
+                learningPoints: '胃酸喪失だけでなく、ループ利尿薬の使用や原発性アルドステロン症などもH⁺の喪失を促進し、代謝性アルカローシスを引き起こす可能性があります。',
+                difficulty: 'medium'
+            },
+            {
+                chapter: '第6章：隠された手掛かり：アニオンギャップの謎',
+                scenario: '「隠された手掛かり」の章では、代謝性アシドーシスの原因を特定するための重要な指標、アニオンギャップの謎に迫る。',
+                character: '探偵シャーロック',
+                question: 'アニオンギャップ（AG）の計算式として正しいのはどれですか？',
+                options: ['AG = [Na⁺] + [K⁺] - [Cl⁻]', 'AG = [Na⁺] - ([Cl⁻] + [HCO₃⁻])', 'AG = [HCO₃⁻] - [Cl⁻]', 'AG = [K⁺] + [HCO₃⁻] - [Na⁺]'],
+                answer: 'AG = [Na⁺] - ([Cl⁻] + [HCO₃⁻])',
+                explanation: 'アニオンギャップは、血中の測定される主要な陽イオン（Na⁺）と陰イオン（Cl⁻、HCO₃⁻）の差から求められます。体液は電気的中性を保つため、測定されない陰イオン（アルブミン、リン酸、乳酸など）の存在を示す指標となります。正常値は約12 ± 2 mEq/Lです。',
+                learningPoints: 'AGの開大（正常値より高い場合）は、乳酸アシドーシスや糖尿病性ケトアシドーシスなど、異常な酸が体内に蓄積していることを示唆します。正常AG性の代謝性アシドーシスは、下痢や腎尿細管性アシドーシスなどで見られます。',
+                difficulty: 'medium'
+            },
+            {
+                chapter: '第7章：知恵の補正：アルブミンの影響',
+                scenario: '「知恵の補正」では、見かけの数値に惑わされず、真の姿を見抜くための補正アニオンギャップの重要性を学ぶ。',
+                character: '錬金術師エメラルド',
+                question: '低アルブミン血症の場合、アニオンギャップ（AG）をどのように補正しますか？',
+                options: ['補正AG = 実測AG - 2.5 × (4.0 - Alb実測)', '補正AG = 実測AG + 2.5 × (4.0 - Alb実測)', '補正AG = 実測AG / Alb実測', '補正AG = 実測AG × Alb実測'],
+                answer: '補正AG = 実測AG + 2.5 × (4.0 - Alb実測)',
+                explanation: 'アルブミンは血中の主要な陰イオンであり、低アルブミン血症では見かけ上AGが低下（ギャップが小さく見える）し、実際よりアシドーシスを軽く評価してしまう可能性があります。そのため、基準値である4.0 g/dLからのアルブミン減少分に2.5を乗じて実測AGに加算することで、真のAGを評価します。',
+                learningPoints: '補正AGを用いることで、低アルブミン血症下の患者でも正確なアニオンギャップの評価が可能となり、隠れた代謝性アシドーシスの発見に繋がります。',
+                difficulty: 'hard'
+            },
+            {
+                chapter: '第8章：混合の迷宮：二次性の異常',
+                scenario: '「混合の迷宮」では、複数の酸塩基異常が同時に存在する複雑な状況に挑む。ΔAGと補正HCO₃⁻がその道標となる。',
+                character: '道化師トリックスター',
+                question: 'アニオンギャップ開大性アシドーシスに加えて、正常アニオンギャップ性代謝性アシドーシスを合併していることを示唆する補正HCO₃⁻の値の傾向はどれですか？',
+                options: ['補正HCO₃⁻が26-28 mEq/Lより高い', '補正HCO₃⁻が22-24 mEq/Lより低い', '補正HCO₃⁻が正常範囲内である', '補正HCO₃⁻と実測HCO₃⁻に差がない'],
+                answer: '補正HCO₃⁻が22-24 mEq/Lより低い',
+                explanation: 'ΔAGは血中に蓄積した非揮発酸の量に相当し、理論上、この酸によってHCO₃⁻は同じだけ消費されるはずです。補正HCO₃⁻ = 実測HCO₃⁻ + ΔAGを計算し、その値が正常範囲（22-24 mEq/L程度）より低い場合、AG開大性アシドーシスに加えて、さらにHCO₃⁻が失われる正常AG性の代謝性アシドーシスが合併していると判断されます（例：DKA患者が下痢もしている場合）。',
+                learningPoints: '補正HCO₃⁻が正常範囲より高い場合は、AG開大性アシドーシスに代謝性アルカローシスが合併している可能性を示唆します。この指標は、隠れた混合性酸塩基異常を見つけるために非常に重要です。',
+                difficulty: 'hard'
+            },
+            {
+                chapter: '第9章：身体の囁き：代償反応の法則',
+                scenario: '「身体の囁き」の章では、体が自らバランスを取り戻そうとする賢い仕組み、代償反応の法則を学ぶ。',
+                character: '医術師ガレノス',
+                question: '代謝性アシドーシスに対する呼吸性代償として、PaCO₂の予測値を求めるWinterの公式はどれですか？',
+                options: ['予測PaCO₂ ≈ 0.7 × [HCO₃⁻] + 20', '予測PaCO₂ ≈ 1.5 × [HCO₃⁻] + 8 ± 2', '予測PaCO₂ ≈ 10 × [HCO₃⁻] / 24', '予測PaCO₂ ≈ [HCO₃⁻] + 40'],
+                answer: '予測PaCO₂ ≈ 1.5 × [HCO₃⁻] + 8 ± 2',
+                explanation: '代謝性アシドーシスでは、低下したHCO₃⁻を補うために呼吸中枢が刺激され、過換気によってPaCO₂を低下させます。Winterの公式は、この代償の程度を予測するもので、1 mEq/LのHCO₃⁻低下に対し、PaCO₂は約1.2 mmHg低下するという経験則に基づいています。この予測範囲から逸脱した場合、混合性の酸塩基異常を疑います。',
+                learningPoints: '代償反応はあくまで部分的なもので、原則としてpHを完全に正常化することはありません。代償の限界を知ることで、隠れた病態を見抜くことができます。',
+                difficulty: 'hard'
+            },
+            {
+                chapter: '最終章：真理の探求者：混合性障害の診断',
+                scenario: 'ついに「真理の探求者」の最終章。これまでの知識を総動員し、最も複雑な混合性酸塩基障害の診断に挑戦する。',
+                character: '大賢者アリストテレス',
+                question: '「pH7.20, PaCO₂ 80 mmHg, HCO₃⁻ 30 mEq/L」という血液ガスデータがあった場合、考えられる酸塩基異常の組み合わせとして最も適切なものはどれですか？ (正常HCO₃⁻ 24 mEq/L, 正常PaCO₂ 40 mmHgとして計算)',
+                options: [
+                    '単純性慢性呼吸性アシドーシス',
+                    '単純性代謝性アルカローシス',
+                    '慢性呼吸性アシドーシスと代謝性アシドーシスの合併',
+                    '急性呼吸性アシドーシスと代謝性アルカローシスの合併'
+                ],
+                answer: '慢性呼吸性アシドーシスと代謝性アシドーシスの合併',
+                explanation: 'この症例では、pHは酸性側（7.20）でありアシデミアです。PaCO₂が80 mmHgと高値であり、呼吸性アシドーシスが存在します。HCO₃⁻は30 mEq/Lと正常より高値ですが、慢性呼吸性アシドーシスの代償としてのHCO₃⁻の上昇は、PaCO₂が10 mmHg上昇するごとにHCO₃⁻が約3-4 mEq/L上昇します。PaCO₂が正常値40 mmHgから40 mmHg上昇しているので、期待されるHCO₃⁻は約24 + (4 × 4) = 40 mEq/L程度です。しかし、実測値は30 mEq/Lと期待値より低いため、慢性呼吸性アシドーシスに加えて代謝性アシドーシスも併発していると考えられます。',
+                learningPoints: '複数の酸塩基異常が合併している場合、pHが一見正常に見えることもあります。各指標と代償反応の法則を照らし合わせることで、隠れた病態を見つけ出すことが臨床では極めて重要です。',
+                difficulty: 'hard'
+            }
+        ];
+
+        const totalQuestions = quizData.length;
+
+        // Utility function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Get badge logic
+        const getBadge = (currentScore) => {
+            const newBadges = [];
+            if (currentScore >= totalQuestions / 2 && !badges.includes('初級知識探究者')) {
+                newBadges.push('初級知識探究者');
+            }
+            if (currentScore >= totalQuestions * 0.7 && !badges.includes('中級平衡術師')) {
+                newBadges.push('中級平衡術師');
+            }
+            if (currentScore === totalQuestions && !badges.includes('酸塩基マスター')) {
+                newBadges.push('酸塩基マスター');
+            }
+            return newBadges;
+        };
+
+        // Get title logic
+        const getTitle = (currentScore) => {
+            if (currentScore === totalQuestions) {
+                return '真理の探求者';
+            } else if (currentScore >= totalQuestions * 0.7) {
+                return '知識の冒険者';
+            } else {
+                return '見習い冒険者';
+            }
+        };
+
+        // Handle answer click
+        function handleAnswerClick(option) {
+            if (showResult) return; // Prevent multiple clicks
+
+            selectedAnswer = option;
+            showResult = true;
+
+            const currentQuestion = randomizedQuestions[currentQuestionIndex];
+            const isCorrect = option === currentQuestion.answer;
+
+            if (isCorrect) {
+                score++;
+                experience += 10;
+                feedbackMessage = '正解！素晴らしい！';
+            } else {
+                feedbackMessage = '残念！もう一度考えてみよう。';
+                // Add to incorrectly answered questions if not already there
+                if (!incorrectlyAnsweredQuestions.includes(currentQuestion)) {
+                    incorrectlyAnsweredQuestions.push(currentQuestion);
+                }
+            }
+
+            renderApp(); // Re-render the app to show results
+        }
+
+        // Handle next question (for main quiz)
+        function handleNextQuestion() {
+            showResult = false;
+            selectedAnswer = null;
+            feedbackMessage = '';
+
+            if (currentQuestionIndex < totalQuestions - 1) {
+                currentQuestionIndex++;
+                renderApp(); // Move to next question
+            } else {
+                quizCompleted = true;
+                const newBadges = getBadge(score);
+                if (newBadges.length > 0) {
+                    badges = [...badges, ...newBadges]; // Update badges
+                }
+                earnedTitle = getTitle(score);
+                renderApp(); // Show final results
+            }
+        }
+
+        // Handle start review mode
+        function startReviewMode() {
+            isReviewMode = true;
+            currentReviewQuestionIndex = 0;
+            showResult = true; // Always show result/explanation in review mode
+            selectedAnswer = null; // Reset selectedAnswer
+            feedbackMessage = ''; // Clear feedback message
+            quizCompleted = false; // Exit quiz completed state
+            renderApp();
+        }
+
+        // Handle next question in review mode
+        function handleNextReviewQuestion() {
+            showResult = true; // Ensure explanation remains visible
+            selectedAnswer = null; // Clear selected answer highlight (options are disabled in review)
+            feedbackMessage = ''; // Clear feedback message
+
+            if (currentReviewQuestionIndex < incorrectlyAnsweredQuestions.length - 1) {
+                currentReviewQuestionIndex++;
+                renderApp();
+            } else {
+                // End of review mode
+                isReviewMode = false;
+                quizCompleted = true; // Go back to the main completion screen
+                renderApp();
+            }
+        }
+
+
+        // Reset quiz state
+        function resetQuizState() {
+            currentQuestionIndex = 0;
+            score = 0;
+            experience = 0;
+            showResult = false;
+            selectedAnswer = null;
+            quizCompleted = false;
+            feedbackMessage = '';
+            badges = [];
+            earnedTitle = '';
+            incorrectlyAnsweredQuestions = []; // Clear incorrect questions on reset
+            isReviewMode = false; // Ensure review mode is off
+            currentReviewQuestionIndex = 0; // Reset review index
+
+            // Sort quizData by difficulty and then shuffle options within each difficulty level
+            const sortedAndShuffled = [...quizData].sort((a, b) => {
+                return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+            });
+            randomizedQuestions = sortedAndShuffled.map(q => ({
+                ...q,
+                options: shuffleArray([...q.options]) // Still shuffle options
+            }));
+            renderApp();
+        }
+
+        // Start quiz
+        function startQuiz() {
+            quizStarted = true;
+            resetQuizState(); // Initialize and shuffle for the first game
+            renderApp();
+        }
+
+        // Main render function
+        function renderApp() {
+            const appDiv = document.getElementById('app');
+            let content = '';
+
+            if (!quizStarted) {
+                content = `
+                    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-indigo-400">
+                        <h1 class="text-4xl font-extrabold text-indigo-700 mb-6">
+                            血液ガス分析アドベンチャー
+                        </h1>
+                        <p class="text-lg mb-8 leading-relaxed">
+                            知識の冒険者よ！血液ガス分析と酸塩基平衡の奥深い世界へようこそ。<br />
+                            あなたの知識を試し、学びを深める旅が今、始まる！
+                        </p>
+                        <button id="startButton"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                            冒険を開始する
+                        </button>
+                    </div>
+                `;
+                appDiv.innerHTML = content;
+                document.getElementById('startButton').onclick = startQuiz;
+            } else if (quizCompleted) {
+                content = `
+                    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-green-500">
+                        <h2 class="text-4xl font-extrabold text-green-700 mb-6">
+                            冒険完了！
+                            <i class="ph ph-star text-yellow-500 ml-2"></i>
+                        </h2>
+                        <p class="text-xl mb-4">
+                            あなたのスコア: <span class="font-bold text-green-600">${score}</span> / ${totalQuestions} 問
+                        </p>
+                        <p class="text-xl mb-4">
+                            獲得経験値: <span class="font-bold text-yellow-600">${experience}</span> EXP
+                        </p>
+                        ${badges.length > 0 ? `
+                            <div class="mb-4">
+                                <h3 class="text-2xl font-bold text-purple-700 mb-2">獲得バッジ:</h3>
+                                <ul class="list-disc list-inside text-lg text-gray-700">
+                                    ${badges.map(badge => `
+                                        <li class="flex items-center justify-center">
+                                            <i class="ph ph-medal text-amber-500 mr-2"></i>${badge}
+                                        </li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${earnedTitle ? `
+                            <p class="text-2xl font-bold text-blue-700 mt-6">
+                                あなたの称号: 「${earnedTitle}」
+                            </p>
+                        ` : ''}
+                        ${incorrectlyAnsweredQuestions.length > 0 ? `
+                            <button id="reviewButton"
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 mt-8 mr-4">
+                                苦手な問題を復習する <i class="ph ph-book-open ml-2"></i>
+                            </button>
+                        ` : ''}
+                        <button id="resetButton"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300 mt-8">
+                            もう一度挑戦する
+                        </button>
+                    </div>
+                `;
+                appDiv.innerHTML = content;
+                document.getElementById('resetButton').onclick = resetQuizState;
+                if (incorrectlyAnsweredQuestions.length > 0) {
+                    document.getElementById('reviewButton').onclick = startReviewMode;
+                }
+            } else {
+                // This is the main quiz or review mode screen
+                const currentDisplayQuestion = isReviewMode ? incorrectlyAnsweredQuestions[currentReviewQuestionIndex] : randomizedQuestions[currentQuestionIndex];
+                const currentDisplayIndex = isReviewMode ? currentReviewQuestionIndex : currentQuestionIndex;
+                const totalDisplayQuestions = isReviewMode ? incorrectlyAnsweredQuestions.length : totalQuestions;
+
+                if (!currentDisplayQuestion) {
+                    content = `
+                        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-b-4 border-indigo-400">
+                            <p class="text-lg text-gray-800">
+                                クイズデータの読み込み中、または問題が設定されていません...
+                            </p>
+                        </div>
+                    `;
+                    appDiv.innerHTML = content;
+                    return;
+                }
+
+                content = `
+                    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-3xl w-full border-b-4 border-indigo-400">
+                        <!-- Progress bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-4 mb-6 shadow-inner">
+                            <div
+                                class="bg-indigo-500 h-4 rounded-full transition-all duration-500 ease-out"
+                                style="width: ${((currentDisplayIndex + 1) / totalDisplayQuestions) * 100}%"
+                            ></div>
+                        </div>
+
+                        <!-- Score and Experience (only in quiz mode) / Review Mode Header -->
+                        ${!isReviewMode ? `
+                        <div class="flex justify-between text-lg font-semibold mb-6">
+                            <p class="text-indigo-700">スコア: ${score}</p>
+                            <p class="text-yellow-700">経験値: ${experience} EXP</p>
+                            <p class="text-gray-600">問題: ${currentDisplayIndex + 1} / ${totalDisplayQuestions}</p>
+                        </div>
+                        ` : `
+                        <div class="flex justify-between text-lg font-semibold mb-6">
+                            <h3 class="text-purple-700 text-2xl font-bold">復習モード <i class="ph ph-book-open ml-2"></i></h3>
+                            <p class="text-gray-600">問題: ${currentDisplayIndex + 1} / ${totalDisplayQuestions}</p>
+                        </div>
+                        `}
+
+                        <!-- Story and Character -->
+                        <p class="text-xl font-semibold mb-4 text-gray-700">
+                            ${currentDisplayQuestion.chapter}
+                        </p>
+                        <div class="bg-indigo-50 p-6 rounded-xl mb-6 shadow-inner border border-indigo-200">
+                            <p class="text-lg mb-2 text-gray-800">
+                                <span class="font-bold text-indigo-600">${currentDisplayQuestion.character}:</span> ${currentDisplayQuestion.scenario}
+                            </p>
+                            <p class="text-xl font-bold text-gray-900">${currentDisplayQuestion.question}</p>
+                        </div>
+
+                        <!-- Options (clickable in quiz mode, disabled in review mode) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            ${currentDisplayQuestion.options.map((option, index) => `
+                                <button
+                                    id="option-${index}"
+                                    class="p-4 rounded-xl border-2 text-lg font-medium transition duration-200 ease-in-out shadow-sm
+                                        ${showResult || isReviewMode // Always show correct/incorrect state if result is shown or in review mode
+                                            ? (option === currentDisplayQuestion.answer
+                                                ? 'bg-green-100 border-green-500 text-green-800 cursor-not-allowed'
+                                                : (option === selectedAnswer && !isReviewMode ? 'bg-red-100 border-red-500 text-red-800 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed')) // Don't highlight user's selected wrong answer in review mode
+                                            : 'bg-white hover:bg-indigo-50 border-indigo-300 text-indigo-700 hover:border-indigo-500'
+                                        }"
+                                    ${showResult || isReviewMode ? 'disabled' : ''}
+                                >
+                                    ${option}
+                                </button>
+                            `).join('')}
+                        </div>
+
+                        <!-- Result and Explanation (always shown in review mode, conditional in quiz mode) -->
+                        ${showResult || isReviewMode ? `
+                            <div class="p-6 rounded-xl ${isReviewMode || selectedAnswer === currentDisplayQuestion.answer ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'} shadow-md border">
+                                ${!isReviewMode ? `
+                                <p class="text-xl font-bold mb-3 ${selectedAnswer === currentDisplayQuestion.answer ? 'text-green-700' : 'text-red-700'}">
+                                    ${feedbackMessage}
+                                    ${selectedAnswer === currentDisplayQuestion.answer ? '<i class="ph ph-check-circle ml-2 text-green-600"></i>' : '<i class="ph ph-x-circle ml-2 text-red-600"></i>'}
+                                </p>
+                                `: ''}
+                                ${(!isReviewMode && selectedAnswer !== currentDisplayQuestion.answer) || isReviewMode ? `
+                                    <p class="text-lg mb-2 text-gray-800">
+                                        正解は: <span class="font-bold text-green-600">${currentDisplayQuestion.answer}</span>
+                                    </p>
+                                ` : ''}
+                                <h3 class="text-xl font-bold text-blue-700 mb-2">解説:</h3>
+                                <p class="text-lg leading-relaxed text-gray-800 mb-4">${currentDisplayQuestion.explanation}</p>
+                                <h3 class="text-xl font-bold text-blue-700 mb-2">補足学習ポイント:</h3>
+                                <p class="text-lg leading-relaxed text-gray-800">${currentDisplayQuestion.learningPoints}</p>
+                            </div>
+                        ` : ''}
+
+                        <!-- Next button (changes based on mode) -->
+                        ${showResult || isReviewMode ? `
+                            <div class="mt-6 flex justify-end">
+                                <button id="nextButton"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                                    ${isReviewMode
+                                        ? (currentReviewQuestionIndex < incorrectlyAnsweredQuestions.length - 1 ? '次の復習問題へ' : '復習を終了する')
+                                        : (currentQuestionIndex < totalQuestions - 1 ? '次の質問へ' : '結果を見る')}
+                                    <i class="ph ph-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                appDiv.innerHTML = content;
+
+                // Add event listeners for options (only in quiz mode)
+                if (!isReviewMode && !showResult) { // Only clickable in quiz mode before result is shown
+                    currentDisplayQuestion.options.forEach((option, index) => {
+                        document.getElementById(`option-${index}`).onclick = () => handleAnswerClick(option);
+                    });
+                }
+                // Add event listener for next button
+                if (showResult || isReviewMode) {
+                    document.getElementById('nextButton').onclick = isReviewMode ? handleNextReviewQuestion : handleNextQuestion;
+                }
+            }
+        }
+
+        // Initial render when the page loads
+        document.addEventListener('DOMContentLoaded', renderApp);
+    </script>
+</body>
+</html>
